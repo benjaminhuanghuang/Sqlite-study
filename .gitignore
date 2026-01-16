@@ -1,4 +1,13 @@
 .DS_Store
 venv3
 *.db
+__pycache__/
+*.pyc
+.env
+node_modules/
+dist/
+build/
+*.log
+.idea/
+package-lock.json
 
