@@ -15,7 +15,17 @@ fn connect_database() -> Result<Connection> {
     Connection::open(db_path)
 }
 
- 
+fn create_table(conn: &Connection, table: &str) -> Result<()> {
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS friends (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )",
+        [],
+    )?;
+    Ok(())
+}
 
 
 #[cfg(test)]
@@ -26,6 +36,15 @@ mod rust_sqlite_demo_tests {
     #[test]
     fn test_connect_database() -> Result<()> {
         connect_database()?;
+        Ok(())
+    }
+
+    # [test]
+    fn test_create_table() -> Result<()> {
+        let conn = connect_database()?;
+        create_table(&conn, "friends")?;
+
+        conn.execute("SELECT * FROM friends", [])?;
         Ok(())
     }
 }

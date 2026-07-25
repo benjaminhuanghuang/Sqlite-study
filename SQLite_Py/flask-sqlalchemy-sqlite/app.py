@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, redirect, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
@@ -29,9 +29,22 @@ def index():
 
 @app.route('/friends')
 def about():
-    title = "About John Elder!"
-    names = ["John", "Mary", "Wes", "Sally"]
-    return render_template("about.html", title=title)
+    title = "Friend list"
+    if request.method == "POST":
+        friend_name = request.form['name']
+        new_friend = Friends(name=friend_name)
+        # Push to Database
+        try:
+            db.session.add(new_friend)
+            db.session.commit()
+            return redirect('/friends')
+        except:
+            return "There was an error adding your friend"
+    else:
+        friends = Friends.query.order_by(Friends.created_at).all()
+        
+        # Completed the return statement with title and passed the 'friends' query results to the template.
+        return render_template("friends.html", title="Friends List", friends=friends)
 
 
 @app.route('/about')
