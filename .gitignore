@@ -1,9 +1,13 @@
 .DS_Store
+## Python
 venv3
+.venv
 *.db
 __pycache__/
 *.pyc
 .env
+
+## node
 node_modules/
 dist/
 build/
@@ -11,3 +15,6 @@ build/
 .idea/
 package-lock.json
 
+## Rust
+Cargo.lock
+target/
