@@ -1,10 +1,11 @@
 {
   "name": "api",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "src/server.ts",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start": "node src/server.ts",
+    "dev": "node --watch src/server.ts",
+    "typecheck": "tsc"
   },
   "keywords": [],
   "author": "",
@@ -13,5 +14,10 @@
   "description": "",
   "dependencies": {
     "express": "4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.3",
+    "typescript": "^7.0.2"
   }
 }

@@ -1,24 +1,19 @@
-import { DatabaseSync } from "node:sqlite";
-import express from "express";
+import type { Request, Response } from "express";
+import { rawDb } from "./db.ts";
+import type {
+  CartItem,
+  OrderItemRow,
+  OrderRow,
+  PizzaSizeRow,
+  PizzaTypeRow,
+} from "./types.ts";
 
-const app = express();
-app.use(express.json());
-
-app.use((req, res, next) => {
-  req.log = console;
-  next();
-});
-
-const PORT = process.env.PORT || 3000;
-
-const rawDb = new DatabaseSync("./pizza.sqlite");
-
-app.get("/api/pizzas", async function getPizzas(req, res) {
+export async function getPizzas(req: Request, res: Response) {
   const pizzas = rawDb
     .prepare(
       "SELECT pizza_type_id, name, category, ingredients as description FROM pizza_types"
     )
-    .all();
+    .all() as unknown as PizzaTypeRow[];
   const pizzaSizes = rawDb
     .prepare(
       `SELECT
@@ -27,10 +22,10 @@ app.get("/api/pizzas", async function getPizzas(req, res) {
       pizzas
   `
     )
-    .all();
+    .all() as unknown as PizzaSizeRow[];
 
   const responsePizzas = pizzas.map((pizza) => {
-    const sizes = pizzaSizes.reduce((acc, current) => {
+    const sizes = pizzaSizes.reduce<Record<string, number>>((acc, current) => {
       if (current.id === pizza.pizza_type_id) {
         acc[current.size] = +current.price;
       }
@@ -47,9 +42,9 @@ app.get("/api/pizzas", async function getPizzas(req, res) {
   });
 
   res.send(responsePizzas);
-});
+}
 
-app.get("/api/pizza-of-the-day", async function getPizzaOfTheDay(req, res) {
+export async function getPizzaOfTheDay(req: Request, res: Response) {
   const pizzas = rawDb
     .prepare(
       `SELECT
@@ -57,7 +52,9 @@ app.get("/api/pizza-of-the-day", async function getPizzaOfTheDay(req, res) {
     FROM
       pizza_types`
     )
-    .all();
+    .all() as unknown as (Omit<PizzaTypeRow, "pizza_type_id"> & {
+    id: string;
+  })[];
 
   const daysSinceEpoch = Math.floor(Date.now() / 86400000);
   const pizzaIndex = daysSinceEpoch % pizzas.length;
@@ -72,9 +69,9 @@ app.get("/api/pizza-of-the-day", async function getPizzaOfTheDay(req, res) {
     WHERE
       pizza_type_id = ?`
     )
-    .all(pizza.id);
+    .all(pizza.id) as unknown as PizzaSizeRow[];
 
-  const sizeObj = sizes.reduce((acc, current) => {
+  const sizeObj = sizes.reduce<Record<string, number>>((acc, current) => {
     acc[current.size] = +current.price;
     return acc;
   }, {});
@@ -89,20 +86,17 @@ app.get("/api/pizza-of-the-day", async function getPizzaOfTheDay(req, res) {
   };
 
   res.send(responsePizza);
-});
+}
 
-app.get("/api/orders", async function getOrders(req, res) {
-  const id = req.query.id;
-  const orders = rawDb.prepare("SELECT order_id, date, time FROM orders").all();
+export async function getOrders(req: Request, res: Response) {
+  const orders = rawDb
+    .prepare("SELECT order_id, date, time FROM orders")
+    .all() as unknown as OrderRow[];
 
   res.send(orders);
-});
+}
 
-app.get("/api/order", async function getOrders(req, res) {
-  const id = req.query.id;
-  const order = rawDb
-    .prepare("SELECT order_id, date, time FROM orders WHERE order_id = ?")
-    .get(id);
+function fetchOrderItems(orderId: string) {
   const orderItemsRes = rawDb
     .prepare(
       `SELECT
@@ -120,26 +114,34 @@ app.get("/api/order", async function getOrders(req, res) {
     WHERE
       order_id = ?`
     )
-    .all(id);
+    .all(orderId) as unknown as OrderItemRow[];
 
-  const orderItems = orderItemsRes.map((item) =>
+  return orderItemsRes.map((item) =>
     Object.assign({}, item, {
       image: `/pizzas/${item.pizzaTypeId}.webp`,
       quantity: +item.quantity,
       price: +item.price,
     })
   );
+}
 
+export async function getOrder(req: Request, res: Response) {
+  const id = req.query.id as string;
+  const order = rawDb
+    .prepare("SELECT order_id, date, time FROM orders WHERE order_id = ?")
+    .get(id) as unknown as OrderRow | undefined;
+
+  const orderItems = fetchOrderItems(id);
   const total = orderItems.reduce((acc, item) => acc + item.total, 0);
 
   res.send({
     order: Object.assign({ total }, order),
     orderItems,
   });
-});
+}
 
-app.post("/api/order", async function createOrder(req, res) {
-  const { cart } = req.body;
+export async function createOrder(req: Request, res: Response) {
+  const { cart } = req.body as { cart: CartItem[] };
 
   const now = new Date();
   // forgive me Date gods, for I have sinned
@@ -159,7 +161,9 @@ app.post("/api/order", async function createOrder(req, res) {
       .run(date, time);
     const orderId = Number(result.lastInsertRowid);
 
-    const mergedCart = cart.reduce((acc, item) => {
+    const mergedCart = cart.reduce<
+      Record<string, { pizzaId: string; quantity: number }>
+    >((acc, item) => {
       const id = item.pizza.id;
       const size = item.size.toLowerCase();
       if (!id || !size) {
@@ -193,83 +197,58 @@ app.post("/api/order", async function createOrder(req, res) {
     rawDb.prepare("ROLLBACK").run();
     res.status(500).send({ error: "Failed to create order" });
   }
-});
+}
 
-app.get("/api/past-orders", async function getPastOrders(req, res) {
+export async function getPastOrders(req: Request, res: Response) {
   await new Promise((resolve) => setTimeout(resolve, 5000));
   try {
-    const page = parseInt(req.query.page, 10) || 1;
+    const page = parseInt(req.query.page as string, 10) || 1;
     const limit = 20;
     const offset = (page - 1) * limit;
     const pastOrders = rawDb
       .prepare(
         "SELECT order_id, date, time FROM orders ORDER BY order_id DESC LIMIT 10 OFFSET ?"
       )
-      .all(offset);
+      .all(offset) as unknown as OrderRow[];
     res.send(pastOrders);
   } catch (error) {
     req.log.error(error);
     res.status(500).send({ error: "Failed to fetch past orders" });
   }
-});
+}
 
-app.get("/api/past-order/:order_id", async function getPastOrder(req, res) {
-  const orderId = req.params.order_id;
+export async function getPastOrder(req: Request, res: Response) {
+  const orderId = req.params.order_id as string;
 
   try {
     const order = rawDb
       .prepare("SELECT order_id, date, time FROM orders WHERE order_id = ?")
-      .get(orderId);
+      .get(orderId) as unknown as OrderRow | undefined;
 
     if (!order) {
       res.status(404).send({ error: "Order not found" });
       return;
     }
 
-    const orderItems = rawDb
-      .prepare(
-        `SELECT
-        t.pizza_type_id as pizzaTypeId, t.name, t.category, t.ingredients as description, o.quantity, p.price, o.quantity * p.price as total, p.size
-      FROM
-        order_details o
-      JOIN
-        pizzas p
-      ON
-        o.pizza_id = p.pizza_id
-      JOIN
-        pizza_types t
-      ON
-        p.pizza_type_id = t.pizza_type_id
-      WHERE
-        order_id = ?`
-      )
-      .all(orderId);
-
-    const formattedOrderItems = orderItems.map((item) =>
-      Object.assign({}, item, {
-        image: `/pizzas/${item.pizzaTypeId}.webp`,
-        quantity: +item.quantity,
-        price: +item.price,
-      })
-    );
-
-    const total = formattedOrderItems.reduce(
-      (acc, item) => acc + item.total,
-      0
-    );
+    const orderItems = fetchOrderItems(orderId);
+    const total = orderItems.reduce((acc, item) => acc + item.total, 0);
 
     res.send({
       order: Object.assign({ total }, order),
-      orderItems: formattedOrderItems,
+      orderItems,
     });
   } catch (error) {
     req.log.error(error);
     res.status(500).send({ error: "Failed to fetch order" });
   }
-});
+}
 
-app.post("/api/contact", async function contactForm(req, res) {
-  const { name, email, message } = req.body;
+export async function contactForm(req: Request, res: Response) {
+  const { name, email, message } = req.body as {
+    name?: string;
+    email?: string;
+    message?: string;
+  };
 
   if (!name || !email || !message) {
     res.status(400).send({ error: "All fields are required" });
@@ -283,8 +262,4 @@ app.post("/api/contact", async function contactForm(req, res) {
   `);
 
   res.send({ success: "Message received" });
-});
-
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+}
