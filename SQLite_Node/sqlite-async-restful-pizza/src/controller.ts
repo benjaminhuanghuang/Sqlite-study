@@ -12,7 +12,7 @@ export async function getPizzas(req: Request, res: Response) {
   const pizzasPromise = rawDb.all<PizzaTypeRow>(
     "SELECT pizza_type_id, name, category, ingredients as description FROM pizza_types"
   );
-  const pizzaSizesPromise = await rawDb.all<PizzaSizeRow>(
+  const pizzaSizesPromise = rawDb.all<PizzaSizeRow>(
     `SELECT
       pizza_type_id as id, size, price
     FROM
