@@ -193,7 +193,7 @@ export async function createOrder(req: Request, res: Response) {
 
     res.send({ orderId });
   } catch (error) {
-    req.log.error(error);
+    console.error(error);
     rawDb.prepare("ROLLBACK").run();
     res.status(500).send({ error: "Failed to create order" });
   }
@@ -212,7 +212,7 @@ export async function getPastOrders(req: Request, res: Response) {
       .all(offset) as unknown as OrderRow[];
     res.send(pastOrders);
   } catch (error) {
-    req.log.error(error);
+    console.error(error);
     res.status(500).send({ error: "Failed to fetch past orders" });
   }
 }
@@ -238,7 +238,7 @@ export async function getPastOrder(req: Request, res: Response) {
       orderItems,
     });
   } catch (error) {
-    req.log.error(error);
+    console.error(error);
     res.status(500).send({ error: "Failed to fetch order" });
   }
 }
@@ -255,7 +255,7 @@ export async function contactForm(req: Request, res: Response) {
     return;
   }
 
-  req.log.info(`Contact Form Submission:
+  console.info(`Contact Form Submission:
     Name: ${name}
     Email: ${email}
     Message: ${message}

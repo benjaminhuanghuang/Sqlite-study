@@ -37,7 +37,6 @@ function createMockReq(overrides: Partial<Request> = {}) {
     query: {},
     params: {},
     body: {},
-    log: { error: vi.fn(), info: vi.fn() },
     ...overrides,
   } as unknown as Request;
 }
@@ -217,11 +216,13 @@ describe("createOrder", () => {
       body: { cart: [{ pizza: { id: "bbq_ckn" }, size: "M" }] },
     });
     const res = createMockRes();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
     await createOrder(req, res);
 
-    expect(req.log.error).toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalled();
     expect(dbMock.run).toHaveBeenCalledWith("ROLLBACK");
+    consoleError.mockRestore();
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.send).toHaveBeenCalledWith({ error: "Failed to create order" });
   });

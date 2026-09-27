@@ -32,11 +32,3 @@ export interface CartItem {
   pizza: { id: string };
   size: string;
 }
-
-declare global {
-  namespace Express {
-    interface Request {
-      log: Console;
-    }
-  }
-}
