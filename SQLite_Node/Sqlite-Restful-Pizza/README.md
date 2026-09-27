@@ -1,10 +1,28 @@
 # Pizza order RESTful API
 
-## Async sqlite
+## Tech stack
+
+## sync sqlite
+
+```ts
+import { DatabaseSync } from "node:sqlite";
+
+export const rawDb = new DatabaseSync("./pizza.sqlite");
+```
+
+## async sqlite
 
 ```sh
 npm i sqlite3 promised-sqlite3"
 ```
+
+```ts
+import { AsyncDatabase } from "promised-sqlite3";
+
+export const rawDb = await AsyncDatabase.open("./pizza.sqlite");
+```
+
+## drizzle
 
 ## Data table
 
