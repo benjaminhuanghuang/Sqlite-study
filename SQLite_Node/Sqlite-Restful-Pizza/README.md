@@ -1,7 +1,5 @@
 # Pizza order RESTful API
 
-## Tech stack
-
 ## sync sqlite
 
 ```ts
@@ -23,6 +21,18 @@ export const rawDb = await AsyncDatabase.open("./pizza.sqlite");
 ```
 
 ## drizzle
+
+https://orm.drizzle.team/docs/sqlite/connect-node-sqlite
+
+```ts
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
+import * as schema from "./schema.ts";
+
+const client = createClient({ url: "file:./pizza.sqlite" });
+
+export const db = drizzle(client, { schema });
+```
 
 ## Data table
 
