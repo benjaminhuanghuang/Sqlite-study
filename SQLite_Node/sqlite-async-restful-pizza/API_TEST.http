@@ -1,0 +1,64 @@
+@baseUrl = http://localhost:3000
+
+### Get all pizzas
+GET {{baseUrl}}/api/pizzas
+
+### Get today's featured pizza
+GET {{baseUrl}}/api/pizza-of-the-day
+
+### Get all orders (id/date/time only)
+GET {{baseUrl}}/api/orders
+
+### Get a single order with its items and total
+GET {{baseUrl}}/api/order?id=1
+
+### Create a new order
+POST {{baseUrl}}/api/order
+Content-Type: application/json
+
+{
+  "cart": [
+    { "pizza": { "id": "bbq_ckn" }, "size": "M" },
+    { "pizza": { "id": "bbq_ckn" }, "size": "M" },
+    { "pizza": { "id": "hawaiian" }, "size": "L" }
+  ]
+}
+
+### Create an order with an invalid (empty) cart -> expect 400
+POST {{baseUrl}}/api/order
+Content-Type: application/json
+
+{
+  "cart": []
+}
+
+### List past orders, page 1 (has an artificial 5s delay)
+GET {{baseUrl}}/api/past-orders
+
+### List past orders, page 2
+GET {{baseUrl}}/api/past-orders?page=2
+
+### Get a specific past order by id
+GET {{baseUrl}}/api/past-order/1
+
+### Get a past order that doesn't exist -> expect 404
+GET {{baseUrl}}/api/past-order/999999
+
+### Submit the contact form
+POST {{baseUrl}}/api/contact
+Content-Type: application/json
+
+{
+  "name": "Jane Doe",
+  "email": "jane.doe@example.com",
+  "message": "Do you deliver to the moon?"
+}
+
+### Submit the contact form with a missing field -> expect 400
+POST {{baseUrl}}/api/contact
+Content-Type: application/json
+
+{
+  "name": "Jane Doe",
+  "message": "Missing email"
+}
